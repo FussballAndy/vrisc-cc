@@ -23,24 +23,38 @@ Here is a complete list of instructions:
 All of these instructions have the same parameters:
 `instr R, R/C, R/C` where `R` is a register and `R/C` is either a register or a constant. Note that this also allows adding two constants together.
 
-### Control
+### Branching
 
 | Instruction | Description |
 | --- | --- |
 | `b LABEL` | Unconditionally jumps to `LABEL` |
 | `b{e,ge,g,le,l} LABEL`| Conditionally jumps to `LABEL` if the internal comparison register matches the condition. Description of each condition below. |
 | `cmp R, R/C`| Subtracts the second parameter from the first and stores the result in an internal comparison register used for conditional branching. |
-| `reserve R/C` | Reserves `R/C` amount of memory. Should _potentially_ be freed afterwords using the `free` instruction. Throws an error if more than stack size is trying to be reserved. |
-| `free R/C`| Frees `R/C` amount of memory, after it was reserved using reserve. Throws an error if more memory should be freed than is available. |
 | `ret` | Ends the program. Named after return for potential extensions to the language. |
 
 Conditions: `e` for equals, `ge` for greater equals, `g` for greater than, `le` for lesser equals, `l` for less than
+
+### Memory
+
+| Instruction | Description |
+| --- | --- |
+| `res R/C` | Reserves `R/C` amount of memory. Should _potentially_ be freed afterwords using the `free` instruction. Throws an error if more than stack size is trying to be reserved. |
+| `free R/C`| Frees `R/C` amount of memory, after it was reserved using reserve. Throws an error if more memory should be freed than is available. |
+| `str R, R/C` | Stores the value of register `R` into the address stored in `R/C` |
+| `ldr R, R/C` | Loads the value at the address stored in `R/C` into register `R` |
+
+### Debug 
+
+| Instruction | Description |
+| --- | --- |
+| `print{a} R` | Prints the value of register `R` to console. If an `a` is appended the value is printed UTF-8 encoded. |
 
 ### Registers and labels
 
 There are 16 directly addressable registers named `r0` to `r15`. Additionally there is an internal register that stores the result of an `cmp` operation.
 
 Additionally there are labels. Labels are present before an instruction. I.e. `label1: add r0, r0, r0`.
+Note: A label should not start with a digit but rather a letter
 
 ### Configuration options
 
@@ -51,3 +65,7 @@ Here the following configuration options exist:
 | --- | --- |
 | `stack_size SIZE` | where `SIZE` is a size in kilobytes. Defines how big the stack should possibly be. This size is allocated for the entire runtime, so don't make it too big! |
 | `entry LABEL` | Defines the entry point for this program. If this option isn't present, the program starts at the first instruction. |
+
+## Restrictions
+
+As the idea behind this challenge is to learn new languages I put on the restriction of only using std functions and not install further packages.
