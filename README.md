@@ -49,9 +49,11 @@ Conditions: `e` for equals, `ge` for greater equals, `g` for greater than, `le` 
 | --- | --- |
 | `print{a} R` | Prints the value of register `R` to console. If an `a` is appended the value is printed UTF-8 encoded. |
 
-### Registers and labels
+### Registers, constants and labels
 
 There are 16 directly addressable registers named `r0` to `r15`. Additionally there is an internal register that stores the result of an `cmp` operation.
+
+Then theres constants. These are simply numbers i.e. `42`, `add r0, r0, 42`.
 
 Additionally there are labels. Labels are present before an instruction. I.e. `label1: add r0, r0, r0`.
 Note: A label should not start with a digit but rather a letter
