@@ -6,7 +6,7 @@ const LexingError = error {
 } || std.fmt.ParseIntError || std.mem.Allocator.Error;
 
 // aka. lexer
-pub fn parse_tokens(content: []const u8) LexingError![]ast.Token {
+pub fn parseTokens(content: []const u8) LexingError![]ast.Token {
     var tokens = std.ArrayList(ast.Token).init(std.heap.page_allocator);
     var cur_idx: usize = 0;
     var cur_word_len: usize = 0;

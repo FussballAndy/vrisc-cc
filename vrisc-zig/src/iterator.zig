@@ -18,7 +18,7 @@ pub fn SliceIterator(comptime T: type) type {
             }
         }
 
-        pub fn has_next(self: *Self) bool {
+        pub fn hasNext(self: *Self) bool {
             return self.i < self.inner.len - 1;
         }
 

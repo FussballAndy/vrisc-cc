@@ -14,16 +14,21 @@ pub fn main() !void {
     }
 
     const file_name = args[1];
+    var parser_reult = try readAndParseFile(file_name, allocator);
+
+    defer parser_reult.deinit();
+}
+
+fn readAndParseFile(file_name: []const u8, allocator: std.mem.Allocator) !parser.ParserResult {
 
     const cwd = std.fs.cwd();
 
     const file_handle = cwd.openFile(file_name, .{}) catch |err| {
-        switch (err) {
-            error.FileNotFound => std.log.err("File {s} was not found", .{file_name}),
-            else => |err_o| std.log.err("{!}", .{err_o})
+        if(err == std.fs.File.OpenError.FileNotFound) {
+            std.log.err("File {s} was not found", .{file_name});
         }
 
-        return;
+        return err;
     };
 
     defer file_handle.close();
@@ -31,11 +36,7 @@ pub fn main() !void {
     const content = try file_handle.readToEndAlloc(allocator, std.math.maxInt(usize));
     defer allocator.free(content);
 
-    const tokens = try lexer.parse_tokens(content);
+    const tokens = try lexer.parseTokens(content);
 
-    try parser.parse_expr(tokens);
-
-    allocator.free(tokens);
-
-    std.log.debug("Read file starting parser", .{});
+    return parser.parseExpr(tokens);
 }

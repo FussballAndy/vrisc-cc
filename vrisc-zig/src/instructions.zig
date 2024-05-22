@@ -12,7 +12,7 @@ pub const Arithmetic = struct {
 };
 
 pub const Branching = struct {
-    counter: u64,
+    counter: u32,
 };
 
 pub const Compare = struct {
