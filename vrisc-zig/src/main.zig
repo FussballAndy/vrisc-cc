@@ -1,6 +1,6 @@
 const std = @import("std");
-const lexer = @import("./lexer.zig");
 const parser = @import("./parser.zig");
+const runtime = @import("./runtime.zig");
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
@@ -36,7 +36,7 @@ fn readAndParseFile(file_name: []const u8, allocator: std.mem.Allocator) !parser
     const content = try file_handle.readToEndAlloc(allocator, std.math.maxInt(usize));
     defer allocator.free(content);
 
-    const tokens = try lexer.parseTokens(content);
+    const tokens = try parser.parseTokens(content);
 
     return parser.parseExpr(tokens);
 }
