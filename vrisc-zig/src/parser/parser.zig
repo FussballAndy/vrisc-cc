@@ -6,7 +6,7 @@ const iter = @import("../iterator.zig");
 pub const RuntimeConfig = struct {
     stack_size: u64 = 0,
     entry: u32 = 0,
-    label_counters: std.ArrayList(u64),
+    label_counters: std.ArrayList(?u64),
 };
 
 pub const ParserResult = struct {
@@ -34,9 +34,13 @@ const ParserIterator = iter.SliceIterator(ast.Token);
 pub fn parseExpr(tokens: []ast.Token) ParserError!ParserResult {
     var result: ParserResult = .{
         .instrs = std.ArrayList(ast.Expr).init(std.heap.page_allocator),
-        .config = .{ .label_counters = std.ArrayList(u64).init(std.heap.page_allocator) },
+        .config = .{ .label_counters = std.ArrayList(?u64).init(std.heap.page_allocator) },
         .label_map = std.StringHashMap(u32).init(std.heap.page_allocator),
     };
+
+    // Won't be needed after parsing, in theory parserresult could also have a successor struct
+    defer result.label_map.deinit();
+
     var tokens_iter = ParserIterator{ .inner = tokens };
 
     while (tokens_iter.hasNext()) {
@@ -68,14 +72,7 @@ fn parseTopLevel(result: *ParserResult, it: *ParserIterator) ParserError!void {
                         return ParserError.MultiConfig;
                     } else {
                         const val = try expectToken(it, ast.TokenType.identifier);
-                        if (result.label_map.get(val.identifier)) |label| {
-                            result.config.entry = label;
-                        } else {
-                            const label = result.label_map.count();
-                            try result.label_map.put(val.identifier, label);
-                            try result.config.label_counters.ensureTotalCapacity(@as(usize, label));
-                            result.config.entry = label;
-                        }
+                        result.config.entry = try getOrCreateLabel(result, val.identifier, null);
                     }
                 } else {
                     _ = it.next(); // Don't really care for an EOF if it is an unknown option.
@@ -92,14 +89,7 @@ fn parseTopLevel(result: *ParserResult, it: *ParserIterator) ParserError!void {
                 const colon = try expectToken(it, ast.TokenType.control);
                 if (colon.control == ':') {
                     const label = colon.identifier;
-                    if (result.label_map.get(label)) |lbl| {
-                        result.config.label_counters.items[lbl] = result.instrs.items.len;
-                    } else {
-                        const lbl_idx = result.label_map.count();
-                        try result.label_map.put(label, lbl_idx);
-                        try result.config.label_counters.ensureTotalCapacity(@as(usize, lbl_idx));
-                        result.config.label_counters.items[lbl_idx] = result.instrs.items.len;
-                    }
+                    _ = try getOrCreateLabel(result, label, result.instrs.items.len);
                 } else {
                     return ParserError.UnexpectedToken;
                 }
@@ -134,6 +124,7 @@ const string_map = std.ComptimeStringMap(ast.ExprType, .{
     .{ "cmp", ast.ExprType.cmp },
     .{ "ret", ast.ExprType.ret },
 
+    .{ "mov", ast.ExprType.mov },
     .{ "res", ast.ExprType.res },
     .{ "free", ast.ExprType.free },
     .{ "str", ast.ExprType.str },
@@ -164,6 +155,8 @@ fn parseInstruction(result: *ParserResult, ty: ast.ExprType, it: *ParserIterator
         .cmp => .{ .cmp = try parseCompare(it) },
 
         .ret => .{ .ret = {} },
+
+        .mov => .{ .mov = try parseMemory(it) },
 
         .res => .{ .res = try parseRegOrConst(it) },
         .free => .{ .free = try parseRegOrConst(it) },
@@ -223,14 +216,7 @@ fn parseControl(it: *ParserIterator, comptime control: u8) ParserError!void {
 fn parseBranching(result: *ParserResult, it: *ParserIterator) ParserError!instr.Branching {
     const label_token = try expectToken(it, ast.TokenType.identifier);
     const label_ident = label_token.identifier;
-    if (result.label_map.get(label_ident)) |label_idx| {
-        return .{ .counter = label_idx };
-    } else {
-        const lbl_idx = result.label_map.count();
-        try result.label_map.put(label_ident, lbl_idx);
-        try result.config.label_counters.ensureTotalCapacity(@as(usize, lbl_idx));
-        return .{ .counter = lbl_idx };
-    }
+    return .{ .counter = try getOrCreateLabel(result, label_ident, null) };
 }
 
 fn parseCompare(it: *ParserIterator) ParserError!instr.Compare {
@@ -245,4 +231,16 @@ fn parseMemory(it: *ParserIterator) ParserError!instr.Memory {
     try parseControl(it, ',');
     const address = try parseRegOrConst(it);
     return .{ .source = source, .address = address };
+}
+
+fn getOrCreateLabel(result: *ParserResult, ident: []const u8, val: ?u64) ParserError!u32 {
+    if (result.label_map.get(ident)) |label_idx| {
+        return label_idx;
+    } else {
+        const lbl_idx = result.label_map.count();
+        try result.label_map.put(ident, lbl_idx);
+        try result.config.label_counters.ensureTotalCapacity(@as(usize, lbl_idx));
+        result.config.label_counters.items[lbl_idx] = val;
+        return lbl_idx;
+    }
 }

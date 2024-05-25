@@ -1,5 +1,6 @@
 const lexer = @import("./parser/lexer.zig");
 const parser = @import("./parser/parser.zig");
+pub const ast = @import("./parser/ast.zig");
 
 pub const parseTokens = lexer.parseTokens;
 pub const parseExpr = parser.parseExpr;

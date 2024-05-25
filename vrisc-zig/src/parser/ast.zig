@@ -22,6 +22,7 @@ pub const ExprType = enum {
     cmp,
     ret,
 
+    mov,
     res,
     free,
     str,
@@ -45,6 +46,8 @@ pub const Expr = union(ExprType) {
     bl: instructions.Branching,
     cmp: instructions.Compare,
     ret: void,
+
+    mov: instructions.Memory,
 
     res: instructions.RegOrConst,
     free: instructions.RegOrConst,
