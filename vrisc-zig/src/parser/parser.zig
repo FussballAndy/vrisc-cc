@@ -5,7 +5,7 @@ const iter = @import("../iterator.zig");
 
 pub const RuntimeConfig = struct {
     stack_size: u64 = 0,
-    entry: u32 = 0,
+    entry: ?u32 = null,
     label_counters: std.ArrayList(?u64),
 };
 
@@ -31,11 +31,11 @@ const ParserError = error{
 
 const ParserIterator = iter.SliceIterator(ast.Token);
 
-pub fn parseExpr(tokens: []ast.Token) ParserError!ParserResult {
+pub fn parseExpr(tokens: []ast.Token, allocator: std.mem.Allocator) ParserError!ParserResult {
     var result: ParserResult = .{
-        .instrs = std.ArrayList(ast.Expr).init(std.heap.page_allocator),
-        .config = .{ .label_counters = std.ArrayList(?u64).init(std.heap.page_allocator) },
-        .label_map = std.StringHashMap(u32).init(std.heap.page_allocator),
+        .instrs = std.ArrayList(ast.Expr).init(allocator),
+        .config = .{ .label_counters = std.ArrayList(?u64).init(allocator) },
+        .label_map = std.StringHashMap(u32).init(allocator),
     };
 
     // Won't be needed after parsing, in theory parserresult could also have a successor struct
@@ -54,21 +54,21 @@ pub fn parseExpr(tokens: []ast.Token) ParserError!ParserResult {
 fn parseTopLevel(result: *ParserResult, it: *ParserIterator) ParserError!void {
     const cur = it.next().?;
     switch (cur) {
-        ast.TokenType.control => {
-            if (cur.control == '.') {
+        ast.TokenType.control => |control| {
+            if (control == '.') {
                 // Parse config
                 const ident = try expectToken(it, ast.TokenType.identifier);
                 if (std.mem.eql(u8, ident.identifier, "stack_size")) {
                     if (result.config.stack_size != 0) {
-                        std.log.err("Config 'stack_size'", .{});
+                        std.debug.print("Error: Config 'stack_size' already assigned", .{});
                         return ParserError.MultiConfig;
                     } else {
                         const val = try expectToken(it, ast.TokenType.number);
-                        result.config.stack_size = val.number;
+                        result.config.stack_size = @intCast(val.number);
                     }
                 } else if (std.mem.eql(u8, ident.identifier, "entry")) {
-                    if (result.config.entry != 0) {
-                        std.log.err("Config 'entry' already assigned", .{});
+                    if (result.config.entry != null) {
+                        std.debug.print("Error: Config 'entry' already assigned", .{});
                         return ParserError.MultiConfig;
                     } else {
                         const val = try expectToken(it, ast.TokenType.identifier);
@@ -78,11 +78,11 @@ fn parseTopLevel(result: *ParserResult, it: *ParserIterator) ParserError!void {
                     _ = it.next(); // Don't really care for an EOF if it is an unknown option.
                 }
             } else {
+                std.debug.print("Got token: {any}\n", .{cur});
                 return ParserError.UnexpectedToken;
             }
         },
-        ast.TokenType.identifier => {
-            const ident = cur.identifier;
+        ast.TokenType.identifier => |ident| {
             if (matchInstruction(ident)) |instr_type| {
                 try parseInstruction(result, instr_type, it);
             } else {
@@ -91,11 +91,15 @@ fn parseTopLevel(result: *ParserResult, it: *ParserIterator) ParserError!void {
                     const label = colon.identifier;
                     _ = try getOrCreateLabel(result, label, result.instrs.items.len);
                 } else {
+                    std.debug.print("Got token: {any}\n", .{cur});
                     return ParserError.UnexpectedToken;
                 }
             }
         },
-        else => return ParserError.UnexpectedToken,
+        else => {
+            std.debug.print("Got token: {any}\n", .{cur});
+            return ParserError.UnexpectedToken;
+        },
     }
 }
 
@@ -104,6 +108,7 @@ fn expectToken(it: *ParserIterator, comptime expect: ast.TokenType) ParserError!
     if (next == expect) {
         return next;
     } else {
+        std.debug.print("Got token: {any}\n", .{next});
         return ParserError.UnexpectedToken;
     }
 }
@@ -184,12 +189,15 @@ fn parseRegOrConst(it: *ParserIterator) ParserError!instr.RegOrConst {
     return switch (token) {
         .identifier => |idt| .{ .reg = try parseRegisterRaw(idt) },
         .number => |num| .{ .con = num },
-        else => return ParserError.UnexpectedToken,
+        else => {
+            std.debug.print("Got token: {any}\n", .{token});
+            return ParserError.UnexpectedToken;
+        },
     };
 }
 
 fn parseRegisterRaw(ident: []const u8) ParserError!u4 {
-    if (ident.len >= 2 and ident.len <= 3) {
+    if (ident.len < 2 or ident.len > 3) {
         return ParserError.NotARegister;
     }
     if (ident[0] != 'r') {
@@ -209,6 +217,7 @@ fn parseRegister(it: *ParserIterator) ParserError!u4 {
 fn parseControl(it: *ParserIterator, comptime control: u8) ParserError!void {
     const token = try expectToken(it, ast.TokenType.control);
     if (token.control != control) {
+        std.debug.print("Got token: {any}\n", .{token});
         return ParserError.UnexpectedToken;
     }
 }

@@ -6,8 +6,9 @@ pub fn SliceIterator(comptime T: type) type {
         i: usize = 0,
 
         pub fn next(self: *Self) ?T {
+            const result = self.peek();
             self.i += 1;
-            return self.peek();
+            return result;
         }
         
         pub fn peek(self: *Self) ?T {
@@ -19,7 +20,7 @@ pub fn SliceIterator(comptime T: type) type {
         }
 
         pub fn hasNext(self: *Self) bool {
-            return self.i < self.inner.len - 1;
+            return self.i < self.inner.len;
         }
 
     };

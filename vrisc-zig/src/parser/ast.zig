@@ -1,3 +1,4 @@
+const std = @import("std");
 const instructions = @import("./instructions.zig");
 
 pub const TokenType = enum {
@@ -9,7 +10,23 @@ pub const TokenType = enum {
 pub const Token = union(TokenType) {
     identifier: []const u8,
     control: u8,
-    number: usize,
+    number: i64,
+
+    pub fn format(self: Token, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = fmt;
+        _ = options;
+        switch (self) {
+            TokenType.identifier => |val| {
+                try writer.print("{{.identifier = {s}}}", .{val});
+            },
+            TokenType.control => |val| {
+                try writer.print("{{.control = {u}}}", .{val});
+            },
+            TokenType.number => |val| {
+                try writer.print("{{.number = {d}}}", .{val});
+            },
+        }
+    }
 };
 
 pub const ExprType = enum {

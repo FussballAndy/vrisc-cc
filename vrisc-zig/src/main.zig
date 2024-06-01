@@ -14,9 +14,16 @@ pub fn main() !void {
     }
 
     const file_name = args[1];
-    var parser_reult = try readAndParseFile(file_name, allocator);
+    var parser_result = try readAndParseFile(file_name, allocator);
+    defer parser_result.deinit();
 
-    defer parser_reult.deinit();
+    var runner = try runtime.createRuntime(&parser_result, allocator);
+
+    try runtime.executeRuntime(runner);
+
+    defer runner.deinit();
+
+
 }
 
 fn readAndParseFile(file_name: []const u8, allocator: std.mem.Allocator) !parser.ParserResult {
@@ -36,7 +43,7 @@ fn readAndParseFile(file_name: []const u8, allocator: std.mem.Allocator) !parser
     const content = try file_handle.readToEndAlloc(allocator, std.math.maxInt(usize));
     defer allocator.free(content);
 
-    const tokens = try parser.parseTokens(content);
+    const tokens = try parser.parseTokens(content, allocator);
 
-    return parser.parseExpr(tokens);
+    return parser.parseExpr(tokens, allocator);
 }

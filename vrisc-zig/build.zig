@@ -57,13 +57,20 @@ pub fn build(b: *std.Build) void {
     });
 
     const parser_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/parser.zig"),
+        .root_source_file = b.path("src/parser/parser.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const lexer_unit_tests = b.addTest(.{
+        .root_source_file = b.path("src/parser/lexer.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
     const run_parser_unit_tests = b.addRunArtifact(parser_unit_tests);
+    const run_lexer_unit_tests = b.addRunArtifact(lexer_unit_tests);
 
     // Similar to creating the run step earlier, this exposes a `test` step to
     // the `zig build --help` menu, providing a way for the user to request
@@ -71,4 +78,5 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_unit_tests.step);
     test_step.dependOn(&run_parser_unit_tests.step);
+    test_step.dependOn(&run_lexer_unit_tests.step);
 }

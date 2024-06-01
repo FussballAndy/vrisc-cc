@@ -2,7 +2,7 @@ pub const ROC = enum { reg, con };
 
 pub const RegOrConst = union(ROC) {
     reg: u4,
-    con: u64,
+    con: i64,
 };
 
 pub const Arithmetic = struct {
@@ -12,7 +12,7 @@ pub const Arithmetic = struct {
 };
 
 pub const Branching = struct {
-    counter: u32,
+    counter: u64,
 };
 
 pub const Compare = struct {
