@@ -38,6 +38,7 @@ Conditions: `e` for equals, `ge` for greater equals, `g` for greater than, `le` 
 
 | Instruction | Description |
 | --- | --- |
+| `mov R, R/C` | Copies the value of `R/C` into `R` |
 | `res R/C` | Reserves `R/C` amount of memory. Should _potentially_ be freed afterwords using the `free` instruction. Throws an error if more than stack size is trying to be reserved. |
 | `free R/C`| Frees `R/C` amount of memory, after it was reserved using reserve. Throws an error if more memory should be freed than is available. |
 | `str R, R/C` | Stores the value of register `R` into the address stored in `R/C` |
