@@ -113,7 +113,7 @@ fn expectToken(it: *ParserIterator, comptime expect: ast.TokenType) ParserError!
     }
 }
 
-const string_map = std.ComptimeStringMap(ast.ExprType, .{
+const string_map = std.StaticStringMap(ast.ExprType).initComptime(.{
     .{ "add", ast.ExprType.add },
     .{ "sub", ast.ExprType.sub },
     .{ "mul", ast.ExprType.mul },
